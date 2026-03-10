@@ -1,0 +1,9 @@
+flask
+flask-cors
+tensorflow>=2.11
+opencv-python
+numpy
+pillow
+scikit-learn
+scipy
+gunicorn

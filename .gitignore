@@ -1,0 +1,8 @@
+venv/
+ml-service/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+node_modules/

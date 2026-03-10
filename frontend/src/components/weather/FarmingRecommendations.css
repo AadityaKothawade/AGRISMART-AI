@@ -1,0 +1,63 @@
+/* components/weather/FarmingRecommendations.css */
+.recommendations-container {
+  margin-top: 24px;
+}
+
+.recommendations-container.favorable {
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.favorable-text {
+  color: #166534;
+  margin: 0;
+}
+
+.recommendations-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.recommendations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.recommendation-card {
+  border: 1px solid;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.recommendation-card.warning {
+  background-color: #fefce8;
+  border-color: #fef08a;
+}
+
+.recommendation-card.info {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.recommendation-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recommendation-title {
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.recommendation-advice {
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.5;
+}

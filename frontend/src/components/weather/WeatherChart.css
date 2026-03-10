@@ -1,0 +1,20 @@
+/* components/weather/WeatherChart.css */
+.weather-charts {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.chart-container {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.chart-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 16px;
+}

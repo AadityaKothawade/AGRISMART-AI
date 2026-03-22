@@ -1,102 +1,106 @@
 import express from 'express';
-import { requireAuth } from '../middleware/auth.js';
 import supabase from '../config/supabase.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Create order (from cart)
+// Create an order (buyer)
 router.post('/', requireAuth, async (req, res) => {
-  const { items, totalAmount } = req.body; // items: array of { productId, quantity, priceAtTime }
-  
-  try {
-    // Start a transaction (Supabase doesn't support multi-table transactions directly, but we can use RPC or handle sequentially)
-    // For simplicity, we'll insert order and then items. If any fails, we need to manually clean up.
-    
-    // 1. Insert order
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert([{
-        buyer_id: req.userId,
-        total_amount: totalAmount,
-        status: 'pending'
-      }])
-      .select()
-      .single();
-    
-    if (orderError) throw orderError;
-    
-    // 2. Insert order items
-    const orderItems = items.map(item => ({
-      order_id: order.id,
-      product_id: item.productId,
-      quantity: item.quantity,
-      price_at_time: item.priceAtTime
-    }));
-    
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-    
-    if (itemsError) {
-      // Rollback: delete the order
-      await supabase.from('orders').delete().eq('id', order.id);
-      throw itemsError;
-    }
-    
-    // 3. Update product quantities (reduce stock)
-    for (const item of items) {
-      await supabase.rpc('decrement_product_quantity', { 
-        product_id: item.productId, 
-        quantity: item.quantity 
-      });
-    }
-    
-    res.status(201).json({ success: true, data: order });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+  const { product_id, quantity } = req.body;
+  const buyer_clerk_id = req.auth.userId;
+
+  // Optional: check if product exists and has enough quantity
+  const { data: product } = await supabase
+    .from('products')
+    .select('quantity, clerk_id')
+    .eq('id', product_id)
+    .single();
+
+  if (!product) return res.status(404).json({ error: 'Product not found' });
+  if (product.clerk_id === buyer_clerk_id) {
+    return res.status(400).json({ error: 'You cannot buy your own product' });
   }
+
+  const { data, error } = await supabase
+    .from('orders')
+    .insert([{ buyer_clerk_id, product_id, quantity, status: 'pending' }])
+    .select();
+
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true, data });
 });
 
-// Get buyer's order history
+// Get orders placed by the logged‑in user (as buyer)
 router.get('/my-orders', requireAuth, async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items (
-          *,
-          products (name, image_url)
-        )
-      `)
-      .eq('buyer_id', req.userId)
-      .order('created_at', { ascending: false });
-    
-    if (error) throw error;
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      products (*)
+    `)
+    .eq('buyer_clerk_id', req.auth.userId)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true, data });
 });
 
-// Get farmer's sales (orders containing farmer's products)
-router.get('/sales', requireAuth, async (req, res) => {
-  try {
-    // Get all order items where product.farmer_id = req.userId
-    const { data, error } = await supabase
-      .from('order_items')
-      .select(`
-        *,
-        orders!inner(buyer_id, created_at, status),
-        products!inner(name, price, farmer_id)
-      `)
-      .eq('products.farmer_id', req.userId);
-    
-    if (error) throw error;
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+// Get orders received for the farmer's products (as seller)
+router.get('/received', requireAuth, async (req, res) => {
+  // First get all product IDs of the farmer
+  const { data: products } = await supabase
+    .from('products')
+    .select('id')
+    .eq('clerk_id', req.auth.userId);
+
+  if (!products || products.length === 0) return res.json({ success: true, data: [] });
+
+  const productIds = products.map(p => p.id);
+  const { data, error } = await supabase
+    .from('orders')
+    .select(`
+      *,
+      products (*)
+    `)
+    .in('product_id', productIds)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true, data });
 });
 
-export default router;
+// Update order status (seller only)
+router.patch('/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  // Check if the order belongs to a product of this farmer
+  const { data: order } = await supabase
+    .from('orders')
+    .select('product_id')
+    .eq('id', id)
+    .single();
+
+  if (!order) return res.status(404).json({ error: 'Order not found' });
+
+  const { data: product } = await supabase
+    .from('products')
+    .select('clerk_id')
+    .eq('id', order.product_id)
+    .single();
+
+  if (!product || product.clerk_id !== req.auth.userId) {
+    return res.status(403).json({ error: 'Not authorized' });
+  }
+
+  const { data, error } = await supabase
+    .from('orders')
+    .update({ status })
+    .eq('id', id)
+    .select();
+
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true, data });
+});
+
+export default router;  

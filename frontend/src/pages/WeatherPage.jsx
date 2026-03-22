@@ -296,12 +296,12 @@ const WeatherPage = () => {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              <h2 className="section-title-with-icon">
+              {/* <h2 className="section-title-with-icon">
                 <FaCalendarAlt className="section-icon" />
                 7-Day Weather Forecast
-              </h2>
+              </h2> */}
 
-              <AnimatePresence mode="wait">
+              {/* <AnimatePresence mode="wait">
                 {viewMode === 'daily' ? (
                   <motion.div 
                     key="daily"
@@ -534,7 +534,7 @@ const WeatherPage = () => {
                     </div>
                   </motion.div>
                 )}
-              </AnimatePresence>
+              </AnimatePresence> */}
             </motion.div>
           </>
         )}

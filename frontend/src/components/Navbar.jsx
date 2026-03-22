@@ -1,4 +1,3 @@
-// components/Navbar.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUser, SignInButton, UserButton } from "@clerk/clerk-react";
@@ -13,7 +12,11 @@ import {
   FaChevronDown,
   FaInfoCircle,
   FaEnvelope,
-  FaPhone
+  FaPhone,
+  FaStore,
+  FaShoppingCart,
+  FaClipboardList,
+  FaTachometerAlt
 } from "react-icons/fa";
 import "./Navbar.css";
 
@@ -84,108 +87,123 @@ export default function Navbar() {
           <span className="logo-text">AgriSmart AI</span>
         </div>
 
-        {/* Navigation Links */}
-       
-
-        {/* Right Section - User Profile */}
+        {/* Right Section - Navigation + User Profile */}
         <div className="nav-right">
-           <div className="nav-links">
-          {/* Features Dropdown */}
-          <div className="dropdown" ref={featuresRef}>
-            <button 
-              className="dropdown-trigger"
-              onClick={() => setFeaturesOpen(!featuresOpen)}
-              onMouseEnter={() => setFeaturesOpen(true)}
-            >
-              <FaLeaf className="trigger-icon" />
-              Features
-              <FaChevronDown className={`chevron ${featuresOpen ? 'open' : ''}`} />
-            </button>
+          <div className="nav-links">
+            {/* Features Dropdown */}
+            <div className="dropdown" ref={featuresRef}>
+              <button 
+                className="dropdown-trigger"
+                onClick={() => setFeaturesOpen(!featuresOpen)}
+                onMouseEnter={() => setFeaturesOpen(true)}
+              >
+                <FaLeaf className="trigger-icon" />
+                Features
+                <FaChevronDown className={`chevron ${featuresOpen ? 'open' : ''}`} />
+              </button>
 
-            <AnimatePresence>
-              {featuresOpen && (
-                <motion.div 
-                  className="dropdown-menu features-menu"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  onMouseLeave={() => setFeaturesOpen(false)}
-                >
-                  {features.map((feature) => (
-                    <motion.div
-                      key={feature.id}
-                      className="feature-item"
-                      onClick={() => {
-                        navigate(feature.path);
-                        setFeaturesOpen(false);
-                      }}
-                      whileHover={{ x: 5 }}
-                    >
-                      <div className="feature-icon" style={{ color: feature.color }}>
-                        {feature.icon}
-                      </div>
-                      <div className="feature-info">
-                        <h4>{feature.title}</h4>
-                        <p>{feature.description}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
+              <AnimatePresence>
+                {featuresOpen && (
+                  <motion.div 
+                    className="dropdown-menu features-menu"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    onMouseLeave={() => setFeaturesOpen(false)}
+                  >
+                    {features.map((feature) => (
+                      <motion.div
+                        key={feature.id}
+                        className="feature-item"
+                        onClick={() => {
+                          navigate(feature.path);
+                          setFeaturesOpen(false);
+                        }}
+                        whileHover={{ x: 5 }}
+                      >
+                        <div className="feature-icon" style={{ color: feature.color }}>
+                          {feature.icon}
+                        </div>
+                        <div className="feature-info">
+                          <h4>{feature.title}</h4>
+                          <p>{feature.description}</p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* About Dropdown */}
+            <div className="dropdown" ref={aboutRef}>
+              <button 
+                className="dropdown-trigger"
+                onClick={() => setAboutOpen(!aboutOpen)}
+                onMouseEnter={() => setAboutOpen(true)}
+              >
+                <FaInfoCircle className="trigger-icon" />
+                About
+                <FaChevronDown className={`chevron ${aboutOpen ? 'open' : ''}`} />
+              </button>
+
+              <AnimatePresence>
+                {aboutOpen && (
+                  <motion.div 
+                    className="dropdown-menu about-menu"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    onMouseLeave={() => setAboutOpen(false)}
+                  >
+                    <div className="about-section">
+                      <h4>About AgriSmart AI</h4>
+                      <p>Revolutionizing agriculture with cutting-edge AI technology. We help farmers optimize their yield, reduce costs, and make data-driven decisions.</p>
+                    </div>
+                    
+                    <div className="about-links">
+                      <a href="#mission" className="about-link">
+                        <FaLeaf /> Our Mission
+                      </a>
+                      <a href="#team" className="about-link">
+                        <FaInfoCircle /> Our Team
+                      </a>
+                      <a href="#contact" className="about-link">
+                        <FaEnvelope /> Contact
+                      </a>
+                      <a href="#phone" className="about-link">
+                        <FaPhone /> +1 (555) 123-4567
+                      </a>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            
+
+            {/* Marketplace links (only for signed‑in users) */}
+            {isSignedIn && (
+              <>
+                <a href="/dashboard" className="nav-link" onClick={(e) => { e.preventDefault(); navigate('/dashboard'); }}>
+                  <FaTachometerAlt className="nav-link-icon" /> Dashboard
+                </a>
+                <a href="/marketplace" className="nav-link" onClick={(e) => { e.preventDefault(); navigate('/marketplace'); }}>
+                  <FaStore className="nav-link-icon" /> Marketplace
+                </a>
+                <a href="/schemes" className="nav-link" onClick={(e) => { e.preventDefault(); navigate('/schemes'); }}>
+                  <FaClipboardList className="nav-link-icon" /> Schemes
+                </a>
+                <a href="/my-orders" className="nav-link" onClick={(e) => { e.preventDefault(); navigate('/my-orders'); }}>
+                  <FaShoppingCart className="nav-link-icon" /> My Orders
+                </a>
+              </>
+            )}
           </div>
 
-          {/* About Dropdown */}
-          <div className="dropdown" ref={aboutRef}>
-            <button 
-              className="dropdown-trigger"
-              onClick={() => setAboutOpen(!aboutOpen)}
-              onMouseEnter={() => setAboutOpen(true)}
-            >
-              <FaInfoCircle className="trigger-icon" />
-              About
-              <FaChevronDown className={`chevron ${aboutOpen ? 'open' : ''}`} />
-            </button>
-
-            <AnimatePresence>
-              {aboutOpen && (
-                <motion.div 
-                  className="dropdown-menu about-menu"
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  onMouseLeave={() => setAboutOpen(false)}
-                >
-                  <div className="about-section">
-                    <h4>About AgriSmart AI</h4>
-                    <p>Revolutionizing agriculture with cutting-edge AI technology. We help farmers optimize their yield, reduce costs, and make data-driven decisions.</p>
-                  </div>
-                  
-                  <div className="about-links">
-                    <a href="#mission" className="about-link">
-                      <FaLeaf /> Our Mission
-                    </a>
-                    <a href="#team" className="about-link">
-                      <FaInfoCircle /> Our Team
-                    </a>
-                    <a href="#contact" className="about-link">
-                      <FaEnvelope /> Contact
-                    </a>
-                    <a href="#phone" className="about-link">
-                      <FaPhone /> +1 (555) 123-4567
-                    </a>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Contact Link (simple) */}
-          <a href="#contact" className="nav-link">Contact</a>
-        </div>
-        
+          {/* User Profile / Sign In */}
           {isSignedIn ? (
             <div className="user-profile">
               <UserButton 

@@ -10,7 +10,7 @@ import os
 warnings.filterwarnings('ignore')
 
 # Import routes
-from routes.health_routes import health_bp
+
 from routes.seed_routes import seed_bp
 from routes.crop_routes import crop_bp  # New crop routes
 
@@ -101,7 +101,7 @@ app.config['IMG_SIZE'] = IMG_SIZE
 app.config['MODEL_PATH'] = MODEL_PATH
 
 # Register blueprints
-app.register_blueprint(health_bp)
+
 app.register_blueprint(seed_bp)
 app.register_blueprint(crop_bp)  # Register new crop routes
 
@@ -114,7 +114,6 @@ if __name__ == "__main__":
     print("="*60)
     print("📡 Server starting on http://127.0.0.1:5001")
     print("\n📊 Available Endpoints:")
-    print("   - GET  /health                         : Health check")
     print("   - POST /predict                         : Single seed prediction")
     print("   - POST /predict_batch                    : Batch seed prediction")
     print("   - POST /predict_with_explanation         : Seed analysis with Grad-CAM")

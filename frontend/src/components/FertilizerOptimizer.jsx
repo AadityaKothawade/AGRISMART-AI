@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
+import BudgetOptimizer from "./BudgetOptimizer";
 import "./FertilizerOptimizer.css";
 
 export default function FertilizerOptimizer() {
@@ -33,8 +34,6 @@ export default function FertilizerOptimizer() {
   // Budget Modal States
   const [showBudgetModal, setShowBudgetModal] = useState(false);
   const [selectedCrop, setSelectedCrop] = useState(null);
-  const [budgetData, setBudgetData] = useState(null);
-  const [budgetLoading, setBudgetLoading] = useState(false);
 
   // API Keys - Replace with your actual OpenWeatherMap API key
   const OPENWEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY; // Get from https://home.openweathermap.org/api_keys
@@ -66,7 +65,7 @@ export default function FertilizerOptimizer() {
   // API Base URL for your backend
   const API_BASE_URL = "http://127.0.0.1:5001";
 
-  // Function to get soil moisture estimation from weather data
+  // Function to estimate soil moisture from weather data
   const estimateSoilMoisture = (humidity, temperature, rainfall = 0) => {
     // Empirical formula based on weather parameters
     // Higher humidity and rainfall increase moisture, higher temperature decreases it
@@ -78,71 +77,6 @@ export default function FertilizerOptimizer() {
     
     // Constrain to realistic range (10% - 80%)
     return Math.min(80, Math.max(10, moisture));
-  };
-
-  // Function to estimate NPK based on soil type and nitrogen
-  const estimateNutrients = (soilType, nitrogen) => {
-    const soil = soilOptions.find(s => s.value === soilType) || soilOptions[1]; // Default to Loamy
-    const ratio = soil.npkRatio;
-    
-    return {
-      nitrogen: nitrogen,
-      phosphorous: Math.round(nitrogen * ratio.p),
-      potassium: Math.round(nitrogen * ratio.k)
-    };
-  };
-
-  // Function to fetch soil data from ISRIC SoilGrids
-  const fetchSoilGridsData = async (lat, lon) => {
-    try {
-      setLocationStatus("🌱 Fetching soil composition from ISRIC SoilGrids...");
-      
-      // SoilGrids API query for multiple soil properties
-      const response = await axios.get(
-        `https://rest.isric.org/soilgrids/v2.0/properties/query`,
-        {
-          params: {
-            lon: lon,
-            lat: lat,
-            property: ['nitrogen', 'phh2o', 'soc', 'clay', 'sand', 'silt'],
-            depth: '0-5cm',
-            value: 'mean'
-          }
-        }
-      );
-
-      if (response.data && response.data.properties) {
-        const properties = response.data.properties;
-        
-        // Extract nitrogen (in g/kg, convert to mg/kg for compatibility)
-        const nitrogenGperKg = properties.nitrogen?.['0-5cm']?.mean || 1.5;
-        const nitrogenMgPerKg = nitrogenGperKg * 1000; // Convert g/kg to mg/kg
-        
-        // Extract pH
-        const ph = properties.phh2o?.['0-5cm']?.mean || 6.5;
-        
-        // Extract clay content for soil texture estimation
-        const clay = properties.clay?.['0-5cm']?.mean || 20;
-        const sand = properties.sand?.['0-5cm']?.mean || 40;
-        
-        // Estimate soil type based on texture
-        let soilType = "Loamy";
-        if (clay > 40) soilType = "Clayey";
-        else if (sand > 60) soilType = "Sandy";
-        else if (clay > 30 && clay < 40) soilType = "Clay Loam";
-        
-        return {
-          nitrogen: Math.round(nitrogenMgPerKg),
-          ph: Math.round(ph * 10) / 10,
-          soilType: soilType,
-          rawData: properties
-        };
-      }
-    } catch (error) {
-      console.log("SoilGrids API error, using estimation:", error.message);
-      return null;
-    }
-    return null;
   };
 
   // Function to get location name from coordinates (reverse geocoding)
@@ -212,7 +146,7 @@ export default function FertilizerOptimizer() {
     }
   };
 
-  // Main function to fetch all data from location
+  // Main function to fetch weather data from location
   const fetchDataFromLocation = async (lat, lon, locationName = null) => {
     setLocationLoading(true);
     setLocationStatus("📍 Getting location data...");
@@ -223,7 +157,7 @@ export default function FertilizerOptimizer() {
         locationName = await getLocationName(lat, lon);
       }
       
-      // 1. Fetch weather data from OpenWeatherMap
+      // Fetch weather data from OpenWeatherMap
       setLocationStatus("🌤️ Fetching weather data from OpenWeatherMap...");
       const weatherResponse = await axios.get(
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric`
@@ -234,27 +168,8 @@ export default function FertilizerOptimizer() {
       const humidity = weatherData.main.humidity;
       const rainfall = weatherData.rain ? weatherData.rain['1h'] || weatherData.rain['3h'] || 0 : 0;
       
-      // 2. Fetch soil data from ISRIC SoilGrids
-      const soilGridsData = await fetchSoilGridsData(lat, lon);
-      
-      // 3. Estimate soil moisture from weather data
+      // Estimate soil moisture from weather data
       const estimatedMoisture = estimateSoilMoisture(humidity, temperature, rainfall);
-      
-      // 4. Determine soil type and nutrients
-      let soilType = form.soil_type || "Loamy";
-      let nitrogen = 50;
-      let ph = 6.5;
-      
-      if (soilGridsData) {
-        nitrogen = soilGridsData.nitrogen;
-        ph = soilGridsData.ph;
-        if (!form.soil_type) {
-          soilType = soilGridsData.soilType;
-        }
-      }
-      
-      // 5. Estimate P and K based on soil type and nitrogen
-      const nutrients = estimateNutrients(soilType, nitrogen);
       
       // Store location data for display
       setLocationData({
@@ -263,25 +178,22 @@ export default function FertilizerOptimizer() {
         lon: lon.toFixed(4)
       });
       
-      // Update form with all fetched data
+      // Update form with ONLY weather data - preserve existing NPK values
       setForm(prev => ({
         ...prev,
         temperature: temperature.toFixed(1),
         humidity: Math.round(humidity),
-        moisture: Math.round(estimatedMoisture),
-        nitrogen: nutrients.nitrogen,
-        phosphorous: nutrients.phosphorous,
-        potassium: nutrients.potassium,
-        ph: ph,
-        soil_type: soilType
+        moisture: Math.round(estimatedMoisture)
+        // NOT updating nitrogen, phosphorous, potassium, ph, or soil_type
+        // These fields will keep their existing values or remain empty for manual input
       }));
       
-      setLocationStatus(`✅ Data fetched from ${locationName}`);
+      setLocationStatus(`✅ Weather data fetched from ${locationName}`);
       
     } catch (error) {
       console.error("Error fetching location data:", error);
       
-      let errorMessage = "❌ Failed to fetch location data: ";
+      let errorMessage = "❌ Failed to fetch weather data: ";
       if (error.response?.status === 401) {
         errorMessage += "Invalid API key. Please check your OpenWeatherMap API key.";
       } else if (error.response?.status === 404) {
@@ -350,7 +262,6 @@ export default function FertilizerOptimizer() {
   const handleCropClick = (crop) => {
     setSelectedCrop(crop);
     setShowBudgetModal(true);
-    setBudgetData(null);
   };
   
   const validateForm = () => {
@@ -358,6 +269,13 @@ export default function FertilizerOptimizer() {
       alert("🌱 Please select your soil type first");
       return false;
     }
+    
+    // Check if NPK values are entered
+    if (!form.nitrogen || !form.phosphorous || !form.potassium) {
+      alert("📊 Please enter Nitrogen (N), Phosphorous (P), and Potassium (K) values");
+      return false;
+    }
+    
     return true;
   };
 
@@ -401,32 +319,6 @@ export default function FertilizerOptimizer() {
     if (temp > 30) return "⛅";
     if (temp < 15) return "❄️";
     return "☁️";
-  };
-
-  const fetchBudgetOptimization = async (budget, area) => {
-    setBudgetLoading(true);
-    try {
-      const response = await axios.post(
-        `${API_BASE_URL}/optimize-budget`,
-        {
-          crop: selectedCrop.crop.toLowerCase(),
-          budget: parseFloat(budget),
-          area: parseFloat(area),
-          soil_n: parseFloat(form.nitrogen) || 50,
-          soil_p: parseFloat(form.phosphorous) || 40,
-          soil_k: parseFloat(form.potassium) || 30
-        },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      
-      if (response.data) {
-        setBudgetData(response.data);
-      }
-    } catch (error) {
-      alert("Error fetching budget optimization: " + error.message);
-    } finally {
-      setBudgetLoading(false);
-    }
   };
 
   const handleSubmit = async () => {
@@ -530,116 +422,6 @@ export default function FertilizerOptimizer() {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Budget Input Form Component
-  const BudgetInputForm = ({ crop, onSubmit, loading }) => {
-    const [budget, setBudget] = useState("");
-    const [area, setArea] = useState("1");
-    
-    return (
-      <div className="budget-input-form">
-        <p className="budget-info">
-          Optimize fertilizer purchase for {crop.crop} based on your budget and land area
-        </p>
-        
-        <div className="budget-field">
-          <label>💰 Budget (₹)</label>
-          <input 
-            type="number" 
-            value={budget}
-            onChange={(e) => setBudget(e.target.value)}
-            placeholder="Enter your total budget"
-            min="0"
-            step="100"
-          />
-        </div>
-        
-        <div className="budget-field">
-          <label>🌾 Land Area (hectares)</label>
-          <input 
-            type="number" 
-            value={area}
-            onChange={(e) => setArea(e.target.value)}
-            placeholder="Enter land area in hectares"
-            step="0.1"
-            min="0.1"
-          />
-        </div>
-        
-        <button 
-          className="budget-submit-btn"
-          onClick={() => onSubmit(budget, area)}
-          disabled={!budget || loading}
-        >
-          {loading ? "Optimizing..." : "Optimize Budget"}
-        </button>
-      </div>
-    );
-  };
-
-  // Budget Results Component
-  const BudgetResults = ({ data, onBack }) => {
-    return (
-      <div className="budget-results">
-        <div className="budget-summary">
-          <div className="summary-card">
-            <span className="summary-label">Total Budget</span>
-            <span className="summary-value">₹{data.total_budget}</span>
-          </div>
-          <div className="summary-card">
-            <span className="summary-label">Area</span>
-            <span className="summary-value">{data.area_hectares} ha</span>
-          </div>
-          <div className="summary-card profit">
-            <span className="summary-label">Expected Profit</span>
-            <span className="summary-value">₹{data.profit_estimate}</span>
-          </div>
-        </div>
-        
-        <div className="roi-display">
-          <div className="roi-circle">
-            <span className="roi-value">{data.roi_percentage}%</span>
-            <span className="roi-label">ROI</span>
-          </div>
-          <div className="roi-details">
-            <p>💰 Revenue: ₹{data.expected_revenue_rs}</p>
-            <p>💸 Spent: ₹{data.total_spent}</p>
-            <p>📈 Yield: {data.predicted_yield_tons} tons</p>
-          </div>
-        </div>
-        
-        <h4>Recommended Fertilizer Combination</h4>
-        <div className="fertilizer-combo">
-          {data.optimal_combination.map((item, idx) => (
-            <div key={idx} className="combo-item">
-              <div className="compo-name">{item.name}</div>
-              <div className="compo-details">
-                <span>{item.quantity_kg} kg</span>
-                <span>₹{item.price_per_kg}/kg</span>
-                <span>₹{item.total_cost}</span>
-              </div>
-              {item.note && <div className="compo-note">{item.note}</div>}
-            </div>
-          ))}
-        </div>
-        
-        <div className="price-update">
-          <small>🔄 Prices updated: {new Date().toLocaleTimeString()}</small>
-          <small>Source: AGMARKNET [citation:1]</small>
-        </div>
-        
-        <div className="budget-actions">
-          <button className="back-btn" onClick={onBack}>← Back</button>
-          <button className="recalculate-btn" onClick={() => {
-            onBack();
-            setShowBudgetModal(false);
-          }}>
-            New Calculation
-          </button>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -792,12 +574,13 @@ export default function FertilizerOptimizer() {
               </select>
             </div>
 
-            {/* First Row - Climate Data */}
+            {/* First Row - Climate Data (Auto-filled from location) */}
             <div className="clean-input-row">
               <div className="clean-input-group">
                 <label className="clean-label">
                   <span className="label-icon">🌡️</span>
                   Temperature (°C)
+                  {locationData && <span className="auto-filled-badge">Auto</span>}
                 </label>
                 <input
                   type="number"
@@ -813,6 +596,7 @@ export default function FertilizerOptimizer() {
                 <label className="clean-label">
                   <span className="label-icon">💧</span>
                   Humidity (%)
+                  {locationData && <span className="auto-filled-badge">Auto</span>}
                 </label>
                 <input
                   type="number"
@@ -828,6 +612,7 @@ export default function FertilizerOptimizer() {
                 <label className="clean-label">
                   <span className="label-icon">💦</span>
                   Soil Moisture (%)
+                  {locationData && <span className="auto-filled-badge">Est.</span>}
                 </label>
                 <input
                   type="number"
@@ -840,17 +625,18 @@ export default function FertilizerOptimizer() {
               </div>
             </div>
 
-            {/* Second Row - NPK Values */}
+            {/* Second Row - NPK Values (Manual Input - No auto-fill) */}
             <div className="clean-input-row">
               <div className="clean-input-group">
                 <label className="clean-label">
                   <span className="label-icon">🟦</span>
                   Nitrogen (N) - mg/kg
+                  <span className="required-badge">Required</span>
                 </label>
                 <input
                   type="number"
                   name="nitrogen"
-                  placeholder="50"
+                  placeholder="Enter N value"
                   value={form.nitrogen}
                   onChange={handleChange}
                   className="clean-input"
@@ -861,11 +647,12 @@ export default function FertilizerOptimizer() {
                 <label className="clean-label">
                   <span className="label-icon">🟧</span>
                   Phosphorous (P) - mg/kg
+                  <span className="required-badge">Required</span>
                 </label>
                 <input
                   type="number"
                   name="phosphorous"
-                  placeholder="40"
+                  placeholder="Enter P value"
                   value={form.phosphorous}
                   onChange={handleChange}
                   className="clean-input"
@@ -876,11 +663,12 @@ export default function FertilizerOptimizer() {
                 <label className="clean-label">
                   <span className="label-icon">🟩</span>
                   Potassium (K) - mg/kg
+                  <span className="required-badge">Required</span>
                 </label>
                 <input
                   type="number"
                   name="potassium"
-                  placeholder="30"
+                  placeholder="Enter K value"
                   value={form.potassium}
                   onChange={handleChange}
                   className="clean-input"
@@ -947,7 +735,7 @@ export default function FertilizerOptimizer() {
               </div>
             </div>
 
-            {/* Data Source Indicator */}
+            {/* Weather Indicator */}
             <div className="weather-indicator-box">
               <div className="weather-icon">
                 {getWeatherEmoji(parseFloat(form.temperature) || 25)}
@@ -955,13 +743,22 @@ export default function FertilizerOptimizer() {
               <div className="weather-details">
                 <span className="weather-label">
                   <span className="data-source-badge">OpenWeatherMap</span>
-                  <span className="data-source-badge isric">ISRIC SoilGrids</span>
                 </span>
                 <span className="weather-value">
-                  {form.temperature || "--"}°C | pH: {form.ph || "6.5"} | 
-                  N: {form.nitrogen || "50"} | P: {form.phosphorous || "40"} | K: {form.potassium || "30"}
+                  {form.temperature || "--"}°C | {form.humidity || "--"}% Humidity
                 </span>
+                {locationData && (
+                  <small className="raw-value-hint">
+                    (Weather data from {locationData.name})
+                  </small>
+                )}
               </div>
+            </div>
+
+            {/* Manual Input Reminder */}
+            <div className="manual-input-reminder">
+              <span className="reminder-icon">📝</span>
+              <span>Please enter Nitrogen (N), Phosphorous (P), and Potassium (K) values manually</span>
             </div>
           </div>
 
@@ -1031,7 +828,7 @@ export default function FertilizerOptimizer() {
                   <div className="metric-content">
                     <span className="metric-label">N-P-K</span>
                     <span className="metric-value">
-                      {form.nitrogen || "50"}-{form.phosphorous || "40"}-{form.potassium || "30"}
+                      {form.nitrogen || "?"}-{form.phosphorous || "?"}-{form.potassium || "?"}
                     </span>
                   </div>
                 </div>
@@ -1127,45 +924,17 @@ export default function FertilizerOptimizer() {
       </div>
 
       {/* Budget Optimization Modal */}
-      <AnimatePresence>
-        {showBudgetModal && selectedCrop && (
-          <motion.div 
-            className="budget-modal-overlay"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setShowBudgetModal(false)}
-          >
-            <motion.div 
-              className="budget-modal"
-              initial={{ scale: 0.9, y: 50 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 50 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button className="modal-close" onClick={() => setShowBudgetModal(false)}>×</button>
-              
-              <div className="modal-header">
-                <span className="modal-crop-emoji">{selectedCrop.emoji}</span>
-                <h2>{selectedCrop.crop} - Budget Optimizer</h2>
-              </div>
-              
-              {!budgetData ? (
-                <BudgetInputForm 
-                  crop={selectedCrop}
-                  onSubmit={fetchBudgetOptimization}
-                  loading={budgetLoading}
-                />
-              ) : (
-                <BudgetResults 
-                  data={budgetData}
-                  onBack={() => setBudgetData(null)}
-                />
-              )}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <BudgetOptimizer 
+        isOpen={showBudgetModal}
+        onClose={() => setShowBudgetModal(false)}
+        crop={selectedCrop}
+        soilNutrients={{
+          nitrogen: form.nitrogen,
+          phosphorous: form.phosphorous,
+          potassium: form.potassium
+        }}
+        apiBaseUrl={API_BASE_URL}
+      />
     </div>
   );
 }

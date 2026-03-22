@@ -13,6 +13,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@clerk/clerk-sdk-node": "^4.13.23",
+    "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.97.0",
     "axios": "^1.13.5",
     "bcryptjs": "^3.0.3",
@@ -20,6 +22,9 @@
     "dotenv": "^17.3.1",
     "express": "^4.22.1",
     "mongoose": "^9.2.1",
+    "multer": "^2.1.1",
+    "node-fetch": "^3.3.2",
+    "openai": "^6.32.0",
     "svix": "^1.86.0"
   }
 }

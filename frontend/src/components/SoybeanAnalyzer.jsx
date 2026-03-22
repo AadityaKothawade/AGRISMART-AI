@@ -422,12 +422,7 @@ export default function SoybeanAnalyzer() {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
                   >
-                    <div className="quality-header">
-                      <span className="quality-label">Seed Health Index</span>
-                      <span className="quality-percentage">
-                        {getHealthyPercentage()}% Healthy
-                      </span>
-                    </div>
+                    
                     <div className="quality-bar-container">
                       <motion.div 
                         className="quality-bar-fill"

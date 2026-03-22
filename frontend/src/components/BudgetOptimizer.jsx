@@ -2,218 +2,203 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  FaRupeeSign, FaLeaf, FaChartLine, FaCheckCircle,
-  FaInfoCircle, FaBalanceScale
-} from "react-icons/fa";
-import { GiFarmTractor } from "react-icons/gi";
 import "./BudgetOptimizer.css";
 
-export default function BudgetOptimizer() {
+export default function BudgetOptimizer({ 
+  isOpen, 
+  onClose, 
+  crop, 
+  soilNutrients,
+  apiBaseUrl 
+}) {
+  const [budgetData, setBudgetData] = useState(null);
+  const [budgetLoading, setBudgetLoading] = useState(false);
   const [budget, setBudget] = useState("");
   const [area, setArea] = useState("1");
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
 
-  const handleSubmit = async () => {
-    if (!budget) {
-      alert("Please enter your budget");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const response = await axios.post(
-        "http://127.0.0.1:5001/optimize-budget",
-        { budget: parseFloat(budget), area: parseFloat(area) }
-      );
-      setResult(response.data);
-    } catch (err) {
-      console.error(err);
-      alert("Error optimizing budget. Check backend server.");
-    }
-    setLoading(false);
+  // Budget Input Form Component
+  const BudgetInputForm = ({ crop, onSubmit, loading }) => {
+    return (
+      <div className="budget-input-form">
+        <p className="budget-info">
+          Optimize fertilizer purchase for {crop.crop} based on your budget and land area
+        </p>
+        
+        <div className="budget-field">
+          <label>💰 Budget (₹)</label>
+          <input 
+            type="number" 
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+            placeholder="Enter your total budget"
+            min="0"
+            step="100"
+          />
+        </div>
+        
+        <div className="budget-field">
+          <label>🌾 Land Area (hectares)</label>
+          <input 
+            type="number" 
+            value={area}
+            onChange={(e) => setArea(e.target.value)}
+            placeholder="Enter land area in hectares"
+            step="0.1"
+            min="0.1"
+          />
+        </div>
+        
+        <button 
+          className="budget-submit-btn"
+          onClick={() => onSubmit(budget, area)}
+          disabled={!budget || loading}
+        >
+          {loading ? "Optimizing..." : "Optimize Budget"}
+        </button>
+      </div>
+    );
   };
 
-  return (
-    <div className="app-page budget-page">
-      <nav className="app-nav">
-        <div className="nav-content">
-          <div className="logo-container">
-            <FaLeaf className="nav-logo-icon" />
-            <span className="nav-logo-text">AgriSmart AI</span>
+  // Budget Results Component
+  const BudgetResults = ({ data, onBack }) => {
+    return (
+      <div className="budget-results">
+        <div className="budget-summary">
+          <div className="summary-card">
+            <span className="summary-label">Total Budget</span>
+            <span className="summary-value">₹{data.total_budget}</span>
           </div>
-          <div className="nav-links">
-            <a href="/" className="nav-link">Home</a>
-            <a href="/soybean" className="nav-link">Soybean</a>
-            <a href="/fertilizer" className="nav-link">Fertilizer</a>
-            <a href="/budget" className="nav-link active">Budget</a>
+          <div className="summary-card">
+            <span className="summary-label">Area</span>
+            <span className="summary-value">{data.area_hectares} ha</span>
+          </div>
+          <div className="summary-card profit">
+            <span className="summary-label">Expected Profit</span>
+            <span className="summary-value">₹{data.profit_estimate}</span>
           </div>
         </div>
-      </nav>
-
-      <div className="app-content">
-        <motion.div 
-          className="page-header"
-          initial={{ opacity: 0, y: -30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="header-icon">
-            <FaBalanceScale />
+        
+        <div className="roi-display">
+          <div className="roi-circle">
+            <span className="roi-value">{data.roi_percentage}%</span>
+            <span className="roi-label">ROI</span>
           </div>
-          <h1 className="page-title">Budget Optimizer</h1>
-          <p className="page-subtitle">Maximize your yield with optimal fertilizer combinations</p>
-        </motion.div>
-
-        <motion.div 
-          className="optimizer-card"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <div className="input-group">
-            <label className="input-label">
-              <FaRupeeSign /> Your Budget (₹)
-            </label>
-            <input
-              type="number"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              placeholder="e.g., 5000"
-              className="form-input"
-            />
+          <div className="roi-details">
+            <p>💰 Revenue: ₹{data.expected_revenue_rs}</p>
+            <p>💸 Spent: ₹{data.total_spent}</p>
+            <p>📈 Yield: {data.predicted_yield_tons} tons</p>
           </div>
-
-          <div className="input-group">
-            <label className="input-label">
-              <GiFarmTractor /> Land Area (hectares)
-            </label>
-            <input
-              type="number"
-              value={area}
-              onChange={(e) => setArea(e.target.value)}
-              placeholder="e.g., 1"
-              className="form-input"
-            />
-          </div>
-
-          <motion.button 
-            className="optimize-btn"
-            onClick={handleSubmit}
-            disabled={loading || !budget}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            {loading ? (
-              <>
-                <div className="spinner"></div>
-                Optimizing...
-              </>
-            ) : (
-              <>
-                <FaChartLine /> Find Best Combination
-              </>
-            )}
-          </motion.button>
-
-          <AnimatePresence>
-            {result && result.success && (
-              <motion.div 
-                className="results-container"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.5 }}
-              >
-                {/* Summary */}
-                <div className="summary-card">
-                  <h3 className="summary-title">Optimization Results</h3>
-                  <div className="summary-stats">
-                    <div className="stat-item">
-                      <span className="stat-label">Budget</span>
-                      <span className="stat-value">₹{result.budget}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Area</span>
-                      <span className="stat-value">{result.area_hectares} ha</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Max Yield</span>
-                      <span className="stat-value">{result.maximum_possible_yield} tons</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Optimal Combination */}
-                {result.optimal_combination && (
-                  <div className="optimal-card">
-                    <h4 className="optimal-title">
-                      <FaCheckCircle /> Optimal Combination
-                    </h4>
-                    <div className="optimal-details">
-                      <div className="fertilizer-item">
-                        <span>Urea</span>
-                        <strong>{result.optimal_combination.urea_kg} kg</strong>
-                      </div>
-                      <div className="fertilizer-item">
-                        <span>DAP</span>
-                        <strong>{result.optimal_combination.dap_kg} kg</strong>
-                      </div>
-                      <div className="fertilizer-item">
-                        <span>MOP</span>
-                        <strong>{result.optimal_combination.mop_kg} kg</strong>
-                      </div>
-                      <div className="total-cost">
-                        <span>Total Cost</span>
-                        <strong>₹{result.optimal_combination.total_cost}</strong>
-                      </div>
-                      <div className="expected-yield">
-                        <span>Expected Yield</span>
-                        <strong>{result.optimal_combination.expected_yield} tons</strong>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Top Efficient Combinations */}
-                {result.top_efficient_combinations && (
-                  <div className="efficient-card">
-                    <h4 className="efficient-title">
-                      <FaChartLine /> Most Efficient Combinations
-                    </h4>
-                    <div className="efficient-list">
-                      {result.top_efficient_combinations.map((combo, index) => (
-                        <div key={index} className="efficient-item">
-                          <div className="efficient-header">
-                            <span className="rank">#{index + 1}</span>
-                            <span className="efficiency">Efficiency: {combo.efficiency}</span>
-                          </div>
-                          <div className="efficient-details">
-                            <span>Urea: {combo.urea_kg}kg</span>
-                            <span>DAP: {combo.dap_kg}kg</span>
-                            <span>MOP: {combo.mop_kg}kg</span>
-                          </div>
-                          <div className="efficient-stats">
-                            <span>Cost: ₹{combo.total_cost}</span>
-                            <span>Yield: {combo.expected_yield} tons</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Message */}
-                <div className="message-card">
-                  <FaInfoCircle className="message-icon" />
-                  <p>{result.message}</p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+        </div>
+        
+        <h4>Recommended Fertilizer Combination</h4>
+        <div className="fertilizer-combo">
+          {data.optimal_combination.map((item, idx) => (
+            <div key={idx} className="combo-item">
+              <div className="compo-name">{item.name}</div>
+              <div className="compo-details">
+                <span>{item.quantity_kg} kg</span>
+                <span>₹{item.price_per_kg}/kg</span>
+                <span>₹{item.total_cost}</span>
+              </div>
+              {item.note && <div className="compo-note">{item.note}</div>}
+            </div>
+          ))}
+        </div>
+        
+        <div className="price-update">
+          <small>🔄 Prices updated: {new Date().toLocaleTimeString()}</small>
+          <small>Source: AGMARKNET [citation:1]</small>
+        </div>
+        
+        <div className="budget-actions">
+          <button className="back-btn" onClick={onBack}>← Back</button>
+          <button className="recalculate-btn" onClick={() => {
+            onBack();
+            onClose();
+          }}>
+            New Calculation
+          </button>
+        </div>
       </div>
-    </div>
+    );
+  };
+
+  const fetchBudgetOptimization = async (budget, area) => {
+    setBudgetLoading(true);
+    try {
+      const response = await axios.post(
+        `${apiBaseUrl}/optimize-budget`,
+        {
+          crop: crop.crop.toLowerCase(),
+          budget: parseFloat(budget),
+          area: parseFloat(area),
+          soil_n: parseFloat(soilNutrients.nitrogen) || 50,
+          soil_p: parseFloat(soilNutrients.phosphorous) || 40,
+          soil_k: parseFloat(soilNutrients.potassium) || 30
+        },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      
+      if (response.data) {
+        setBudgetData(response.data);
+      }
+    } catch (error) {
+      alert("Error fetching budget optimization: " + error.message);
+    } finally {
+      setBudgetLoading(false);
+    }
+  };
+
+  const handleReset = () => {
+    setBudgetData(null);
+    setBudget("");
+    setArea("1");
+  };
+
+  const handleClose = () => {
+    handleReset();
+    onClose();
+  };
+
+  if (!isOpen || !crop) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div 
+        className="budget-modal-overlay"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={handleClose}
+      >
+        <motion.div 
+          className="budget-modal"
+          initial={{ scale: 0.9, y: 50 }}
+          animate={{ scale: 1, y: 0 }}
+          exit={{ scale: 0.9, y: 50 }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button className="modal-close" onClick={handleClose}>×</button>
+          
+          <div className="modal-header">
+            <span className="modal-crop-emoji">{crop.emoji}</span>
+            <h2>{crop.crop} - Budget Optimizer</h2>
+          </div>
+          
+          {!budgetData ? (
+            <BudgetInputForm 
+              crop={crop}
+              onSubmit={fetchBudgetOptimization}
+              loading={budgetLoading}
+            />
+          ) : (
+            <BudgetResults 
+              data={budgetData}
+              onBack={handleReset}
+            />
+          )}
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

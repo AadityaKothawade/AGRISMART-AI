@@ -1,4 +1,4 @@
-// frontend/src/App.jsx
+// App.jsx (only wrap routes, no other changes needed)
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import { SignedIn, SignedOut } from "@clerk/clerk-react";
@@ -18,7 +18,7 @@ import BuyProduct from "./pages/BuyProduct";
 import SellProduct from "./pages/SellProduct";
 import GovernmentSchemes from "./pages/GovernmentSchemes";
 import MyOrders from "./pages/MyOrders";
-import Chatbot from "./components/Chatbot/Chatbot"; // Import Chatbot
+import Chatbot from "./components/Chatbot/Chatbot";
 import "./App.css";
 
 function App() {
@@ -52,7 +52,6 @@ function App() {
         <Route path="/unauthorized" element={<div>Unauthorized</div>} />
       </Routes>
       
-      {/* Add Chatbot Component - it will appear on all pages */}
       <Chatbot />
     </div>
   );

@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "home": "Home",
+    "features": "Features",
+    "about": "About",
+    "marketplace": "Marketplace",
+    "schemes": "Schemes",
+    "myOrders": "My Orders",
+    "dashboard": "Dashboard",
+    "signIn": "Sign In"
+  },
+  "buy": {
+    "title": "Buy Products",
+    "searchPlaceholder": "Search products...",
+    "filter": "Filter by category",
+    "buyNow": "Buy Now",
+    "yourProduct": "Your product"
+  },
+  "sell": {
+    "title": "Sell Your Product",
+    "productName": "Product Name",
+    "category": "Category",
+    "quantity": "Quantity",
+    "price": "Price (₹)",
+    "location": "Location",
+    "description": "Description",
+    "image": "Product Image",
+    "listProduct": "List Product",
+    "updateProduct": "Update Product",
+    "yourListings": "Your Listed Products"
+  },
+  "cart": {
+    "title": "Your Cart",
+    "empty": "Cart is empty",
+    "total": "Total",
+    "placeOrder": "Place Order"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "retry": "Retry"
+  }
+}

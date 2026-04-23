@@ -1,10 +1,11 @@
-// frontend/src/components/Chatbot/Chatbot.jsx
+// components/Chatbot/Chatbot.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
+import { useLanguage } from '../../contexts/LanguageContext';
 import './Chatbot.css';
 
-// Simple SVG Icons
+// Simple SVG Icons (unchanged)
 const RobotIcon = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -42,6 +43,7 @@ const SpinnerIcon = () => (
 );
 
 const Chatbot = () => {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -72,15 +74,23 @@ const Chatbot = () => {
       const response = await axios.get(`${API_URL}/api/chatbot/suggestions`);
       if (response.data.success) {
         setSuggestions(response.data.suggestions);
+      } else {
+        // Use translated fallback suggestions
+        setSuggestions([
+          t('suggestion_pest_control'),
+          t('suggestion_best_fertilizer'),
+          t('suggestion_organic_farming'),
+          t('suggestion_gov_schemes')
+        ]);
       }
     } catch (error) {
       console.error('Failed to fetch suggestions:', error);
-      // Fallback suggestions if API fails
+      // Translated fallback suggestions
       setSuggestions([
-        "How to control pests in soybean crops?",
-        "What's the best fertilizer for wheat?",
-        "Tell me about organic farming methods",
-        "What government schemes are available for farmers?"
+        t('suggestion_pest_control'),
+        t('suggestion_best_fertilizer'),
+        t('suggestion_organic_farming'),
+        t('suggestion_gov_schemes')
       ]);
     }
   };
@@ -100,13 +110,7 @@ const Chatbot = () => {
     setIsLoading(true);
 
     try {
-      // Prepare history for the API (exclude the current message we just added)
-      const history = messages.map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-
-      // Use the /chat endpoint which matches your backend
+      const history = messages.map(msg => ({ role: msg.role, content: msg.content }));
       const response = await axios.post(`${API_URL}/api/chatbot/chat`, {
         message: message,
         history: history
@@ -127,17 +131,17 @@ const Chatbot = () => {
     } catch (error) {
       console.error('Error sending message:', error);
       
-      let errorMsg = 'Sorry, I encountered an error. Please try again later.';
+      let errorMsg = t('error_message_chat');
       
       if (error.response?.data?.error) {
         errorMsg = error.response.data.error;
       } else if (error.message === 'Network Error') {
-        errorMsg = 'Network error. Please check your internet connection.';
+        errorMsg = t('network_error');
       } else if (error.response?.status === 429) {
-        errorMsg = 'Too many requests. Please wait a moment and try again.';
+        errorMsg = t('too_many_requests');
         setErrorCount(prev => prev + 1);
       } else if (error.response?.status === 500) {
-        errorMsg = 'Server error. Please try again in a few moments.';
+        errorMsg = t('server_error');
       }
       
       const errorMessage = {
@@ -206,8 +210,8 @@ const Chatbot = () => {
                   <RobotIcon />
                 </div>
                 <div>
-                  <h3>AgriSmart AI Assistant</h3>
-                  <p>Powered by Google Gemini 2.5 Flash</p>
+                  <h3>{t('ai_assistant')}</h3>
+                  <p>{t('powered_by')}</p>
                 </div>
               </div>
               <div className="chatbot-header-actions">
@@ -215,7 +219,7 @@ const Chatbot = () => {
                   <button
                     className="chatbot-clear"
                     onClick={clearMessages}
-                    title="Clear chat"
+                    title={t('clear_chat')}
                   >
                     🗑️
                   </button>
@@ -244,20 +248,17 @@ const Chatbot = () => {
                       <div className="welcome-icon">
                         <RobotIcon />
                       </div>
-                      <h4>Hello! 👋</h4>
-                      <p>
-                        I'm your agricultural AI assistant powered by Google Gemini 2.5 Flash.
-                        Ask me anything about:
-                      </p>
+                      <h4>{t('welcome_greeting')}</h4>
+                      <p>{t('welcome_message')}</p>
                       <ul>
-                        <li>🌾 Crop management</li>
-                        <li>🐛 Pest control</li>
-                        <li>💧 Irrigation techniques</li>
-                        <li>📈 Market prices</li>
-                        <li>🏛️ Government schemes</li>
+                        <li>{t('crop_management')}</li>
+                        <li>{t('pest_control')}</li>
+                        <li>{t('irrigation')}</li>
+                        <li>{t('market_prices')}</li>
+                        <li>{t('gov_schemes_chat')}</li>
                       </ul>
                       <div className="feature-badge">
-                        <span>✨ Powered by Gemini 2.5 Flash</span>
+                        <span>✨ {t('powered_by')}</span>
                       </div>
                     </div>
                   )}
@@ -297,7 +298,7 @@ const Chatbot = () => {
                 {/* Suggestions */}
                 {messages.length === 0 && suggestions.length > 0 && (
                   <div className="chatbot-suggestions">
-                    <p>Try asking me:</p>
+                    <p>{t('try_asking')}</p>
                     <div className="suggestions-grid">
                       {suggestions.slice(0, 6).map((suggestion, index) => (
                         <button
@@ -319,7 +320,7 @@ const Chatbot = () => {
                     value={inputMessage}
                     onChange={(e) => setInputMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    placeholder="Ask me anything about agriculture..."
+                    placeholder={t('type_message')}
                     rows="1"
                   />
                   <button
@@ -334,7 +335,7 @@ const Chatbot = () => {
                 {/* Rate Limit Warning */}
                 {errorCount > 3 && (
                   <div className="rate-limit-warning">
-                    ⚠️ You've hit the rate limit. Please wait a moment before sending more messages.
+                    ⚠️ {t('rate_limit_warning')}
                   </div>
                 )}
               </>

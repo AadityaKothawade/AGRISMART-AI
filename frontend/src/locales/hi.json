@@ -1,0 +1,43 @@
+{
+  "nav": {
+    "home": "होम",
+    "features": "सुविधाएँ",
+    "about": "हमारे बारे में",
+    "marketplace": "बाज़ार",
+    "schemes": "योजनाएँ",
+    "myOrders": "मेरे ऑर्डर",
+    "dashboard": "डैशबोर्ड",
+    "signIn": "साइन इन"
+  },
+  "buy": {
+    "title": "उत्पाद खरीदें",
+    "searchPlaceholder": "उत्पाद खोजें...",
+    "filter": "श्रेणी से छाँटें",
+    "buyNow": "अभी खरीदें",
+    "yourProduct": "आपका उत्पाद"
+  },
+  "sell": {
+    "title": "अपना उत्पाद बेचें",
+    "productName": "उत्पाद का नाम",
+    "category": "श्रेणी",
+    "quantity": "मात्रा",
+    "price": "कीमत (₹)",
+    "location": "स्थान",
+    "description": "विवरण",
+    "image": "उत्पाद की छवि",
+    "listProduct": "उत्पाद सूचीबद्ध करें",
+    "updateProduct": "उत्पाद अपडेट करें",
+    "yourListings": "आपके सूचीबद्ध उत्पाद"
+  },
+  "cart": {
+    "title": "आपका कार्ट",
+    "empty": "कार्ट खाली है",
+    "total": "कुल",
+    "placeOrder": "ऑर्डर करें"
+  },
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "error": "त्रुटि",
+    "retry": "पुनः प्रयास करें"
+  }
+}

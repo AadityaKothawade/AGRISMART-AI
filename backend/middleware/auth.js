@@ -6,10 +6,9 @@ export const requireAuth = async (req, res, next) => {
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'No token provided' });
     }
-
     const token = authHeader.split(' ')[1];
     const verified = await clerkClient.verifyToken(token);
-    req.auth = { userId: verified.sub }; // Clerk user ID
+    req.auth = { userId: verified.sub };
     next();
   } catch (error) {
     console.error('Auth error:', error);

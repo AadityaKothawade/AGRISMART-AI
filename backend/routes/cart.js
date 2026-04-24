@@ -1,105 +1,82 @@
-const express = require('express');
+import express from 'express';
+import supabase from '../config/supabase.js';
+import { requireAuth } from '../middleware/auth.js';
+
 const router = express.Router();
-const supabase = require('../config/supabase');
 
-// Get cart for a user
-router.get('/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { data, error } = await supabase
-      .from('cart_items')
-      .select(`
-        *,
-        products (*)
-      `)
-      .eq('user_id', userId);
-    if (error) throw error;
-    res.json({ success: true, data });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+// Get user's cart
+router.get('/', requireAuth, async (req, res) => {
+  const { data, error } = await supabase
+    .from('cart_items')
+    .select(`*, products(*)`)
+    .eq('user_id', req.auth.userId);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true, data });
 });
 
-// Add item to cart
-router.post('/', async (req, res) => {
-  try {
-    const { user_id, product_id, quantity } = req.body;
-    // Check if item already exists
-    const { data: existing } = await supabase
-      .from('cart_items')
-      .select('*')
-      .eq('user_id', user_id)
-      .eq('product_id', product_id)
-      .maybeSingle();
+// Add to cart
+router.post('/', requireAuth, async (req, res) => {
+  const { product_id, quantity } = req.body;
+  const user_id = req.auth.userId;
 
-    if (existing) {
-      // Update quantity
-      const { data, error } = await supabase
-        .from('cart_items')
-        .update({ quantity: existing.quantity + quantity })
-        .eq('id', existing.id)
-        .select();
-      if (error) throw error;
-      return res.json({ success: true, data: data[0] });
-    } else {
-      // Insert new
-      const { data, error } = await supabase
-        .from('cart_items')
-        .insert([{ user_id, product_id, quantity }])
-        .select();
-      if (error) throw error;
-      return res.json({ success: true, data: data[0] });
-    }
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
+  // Check if exists
+  const { data: existing } = await supabase
+    .from('cart_items')
+    .select('*')
+    .eq('user_id', user_id)
+    .eq('product_id', product_id)
+    .maybeSingle();
 
-// Update cart item quantity
-router.put('/:itemId', async (req, res) => {
-  try {
-    const { itemId } = req.params;
-    const { quantity } = req.body;
+  if (existing) {
     const { data, error } = await supabase
       .from('cart_items')
-      .update({ quantity })
-      .eq('id', itemId)
+      .update({ quantity: existing.quantity + quantity })
+      .eq('id', existing.id)
       .select();
-    if (error) throw error;
-    res.json({ success: true, data: data[0] });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-// Remove item from cart
-router.delete('/:itemId', async (req, res) => {
-  try {
-    const { itemId } = req.params;
-    const { error } = await supabase
+    if (error) return res.status(400).json({ error: error.message });
+    return res.json({ success: true, data: data[0] });
+  } else {
+    const { data, error } = await supabase
       .from('cart_items')
-      .delete()
-      .eq('id', itemId);
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+      .insert([{ user_id, product_id, quantity }])
+      .select();
+    if (error) return res.status(400).json({ error: error.message });
+    return res.json({ success: true, data: data[0] });
   }
 });
 
-// Clear cart for a user
-router.delete('/user/:userId', async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { error } = await supabase
-      .from('cart_items')
-      .delete()
-      .eq('user_id', userId);
-    if (error) throw error;
-    res.json({ success: true });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
+// Update quantity
+router.put('/:itemId', requireAuth, async (req, res) => {
+  const { itemId } = req.params;
+  const { quantity } = req.body;
+  const { data, error } = await supabase
+    .from('cart_items')
+    .update({ quantity })
+    .eq('id', itemId)
+    .select();
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true, data: data[0] });
 });
 
-module.exports = router;
+// Remove item
+router.delete('/:itemId', requireAuth, async (req, res) => {
+  const { itemId } = req.params;
+  const { error } = await supabase
+    .from('cart_items')
+    .delete()
+    .eq('id', itemId);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true });
+});
+
+// Clear cart
+router.delete('/', requireAuth, async (req, res) => {
+  const { error } = await supabase
+    .from('cart_items')
+    .delete()
+    .eq('user_id', req.auth.userId);
+  if (error) return res.status(400).json({ error: error.message });
+  res.json({ success: true });
+});
+
+export default router;

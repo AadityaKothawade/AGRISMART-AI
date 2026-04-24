@@ -9,6 +9,7 @@ import orderRoutes from './routes/orders.js';
 import schemeRoutes from './routes/schemes.js';
 import storeRoutes from './routes/store.js';
 import chatbotRoutes from './routes/chatbot.js';
+import cartRoutes from './routes/cart.js';
 // ... after existing routes
 
 
@@ -42,6 +43,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/schemes', schemeRoutes);
 app.use('/api/store', storeRoutes);
 app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Health check
 app.get('/', (req, res) => {
